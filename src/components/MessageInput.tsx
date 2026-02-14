@@ -42,6 +42,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onMessageSent }) => {
                     disabled={loading}
                     maxLength={1000}
                 />
+                <span className="char-count">{text.length}/1000</span>
                 <button onClick={handleSend} disabled={loading || !text.trim()}>
                     {loading ? 'Posting...' : 'Post'}
                 </button>

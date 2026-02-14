@@ -8,32 +8,66 @@ interface MessageListProps {
 const MessageList: React.FC<MessageListProps> = ({ refreshTrigger }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [autoRefresh, setAutoRefresh] = useState(false);
 
     useEffect(() => {
         loadMessages();
     }, [refreshTrigger]);
 
-    const loadMessages = async () => {
-        setLoading(true);
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (autoRefresh) {
+            interval = setInterval(() => {
+                loadMessages(true); // Silent refresh
+            }, 10000);
+        }
+        return () => clearInterval(interval);
+    }, [autoRefresh]);
+
+    const loadMessages = async (silent = false) => {
+        if (!silent) setLoading(true);
         const msgs = await fetchMessages();
         setMessages(msgs);
-        setLoading(false);
+        if (!silent) setLoading(false);
     };
+
+    const filteredMessages = messages.filter(msg =>
+        msg.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="message-list">
             <div className="header">
                 <h2>Latest Messages</h2>
-                <button onClick={loadMessages} disabled={loading}>
-                    {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
+                <div className="controls">
+                    <input
+                        type="text"
+                        placeholder="Search messages..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
+                    <label className="auto-refresh">
+                        <input
+                            type="checkbox"
+                            checked={autoRefresh}
+                            onChange={(e) => setAutoRefresh(e.target.checked)}
+                        />
+                        Auto-refresh (10s)
+                    </label>
+                    <button onClick={() => loadMessages()} disabled={loading}>
+                        {loading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                </div>
             </div>
 
-            {messages.length === 0 && !loading && (
-                <p className="empty-state">No messages found on chain.</p>
+            {filteredMessages.length === 0 && !loading && (
+                <p className="empty-state">No messages found.</p>
             )}
 
-            {messages.map((msg) => (
+            {filteredMessages.map((msg) => (
                 <div key={msg.id} className="message-card">
                     <p className="message-text">{msg.text}</p>
                     <div className="message-meta">
